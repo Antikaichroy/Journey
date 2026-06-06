@@ -44,6 +44,8 @@
   .brandmark .dot{width:8px;height:8px;border-radius:50%;background:var(--cur);box-shadow:0 0 12px var(--cur);transition:.6s}
   .home-link{position:fixed;top:16px;right:24px;z-index:80;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);text-decoration:none;border:1px solid var(--line-strong);padding:8px 14px;border-radius:30px;background:rgba(8,7,10,.35);backdrop-filter:blur(6px);transition:.25s}
   .home-link:hover{color:var(--cur);border-color:var(--cur)}
+  .sound-toggle{position:fixed;bottom:26px;right:26px;z-index:80;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);text-decoration:none;border:1px solid var(--line-strong);padding:8px 14px;border-radius:30px;background:rgba(8,7,10,.35);backdrop-filter:blur(6px);transition:.25s;cursor:pointer;font-weight:500}
+  .sound-toggle:hover{color:var(--cur);border-color:var(--cur)}
 
   /* elevation gauge */
   .gauge{position:fixed;right:26px;top:50%;transform:translateY(-50%);z-index:80;height:48vh;display:flex;flex-direction:column;align-items:center;justify-content:space-between;opacity:0;transition:opacity .5s}
@@ -175,6 +177,11 @@
   <div class="bar"><div class="fill" id="gfill"><div class="knob"></div><div class="alt" id="galt">0%</div></div></div>
   <span class="cap">Base</span>
 </div>
+
+<audio id="bgMusic" loop>
+  <source src="./audio/sigmamusicart-background-music-inspiring-525840.mp3" type="audio/mpeg">
+</audio>
+<button class="sound-toggle" id="soundToggle" title="Toggle background music">🎵 Music</button>
 
 <!-- ===== HERO ===== -->
 <section class="hero">
@@ -503,6 +510,11 @@ addEventListener('resize',()=>{buildTrail();});
   function draw(){ctx.clearRect(0,0,w,h);for(const s of st){s.t+=s.s;const tw=(Math.sin(s.t)*.5+.5);const a=starP*tw*0.9;if(a>0.01){ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+a+')';ctx.fill();}}addMeteor();meteors.forEach(drawMeteor);meteors=meteors.filter(m=>m.life<m.max&&m.x>-180&&m.y<h+80);requestAnimationFrame(draw);}
   size();draw();let t;addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(size,200);});
 })();
+
+/* ---- audio toggle ---- */
+const bgMusic=document.getElementById('bgMusic'),soundToggle=document.getElementById('soundToggle');
+soundToggle.addEventListener('click',()=>{if(bgMusic.paused){bgMusic.play();soundToggle.style.color='var(--cur)';soundToggle.style.borderColor='var(--cur)';}else{bgMusic.pause();soundToggle.style.color='var(--ink-dim)';soundToggle.style.borderColor='var(--line-strong)';}});
+window.addEventListener('beforeunload',()=>{bgMusic.pause();});
 
 /* build after layout + fonts settle */
 addEventListener('load',()=>{buildTrail();setTimeout(buildTrail,400);});
