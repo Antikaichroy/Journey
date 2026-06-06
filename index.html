@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Ascent · Antik Aich Roy</title>
+<meta name="description" content="An interactive mountain-ascent journey through the work of Antik Aich Roy, from base camp to the research summit." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,400..600&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#f2ede4; --ink-dim:#c3bcae; --ink-faint:#8a8479;
+    --e1:#9d8df0; --e2:#4fb5a8; --e3:#e3a857; --cur:#9d8df0;
+    --line:rgba(242,237,228,0.12); --line-strong:rgba(242,237,228,0.22);
+    --maxw:1100px;
+    --s-top:#05060c; --s-mid:#0a0c1a; --s-hor:#1a1f3a; --bloom:0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{color:var(--ink);font-family:"Spectral",Georgia,serif;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;background:#08070a}
+  .mono{font-family:"JetBrains Mono",monospace}
+
+  /* ===== FIXED MOUNTAIN SCENE ===== */
+  .scene{position:fixed;inset:0;z-index:0;overflow:hidden}
+  .sky{position:absolute;inset:0;background:linear-gradient(180deg,var(--s-top) 0%,var(--s-mid) 56%,var(--s-hor) 100%);transition:none}
+  #stars{position:absolute;inset:0}
+  .celestial{position:absolute;width:90px;height:90px;border-radius:50%;left:30%;top:16%;
+    background:radial-gradient(circle at 50% 50%, #cdd6ff 0%, rgba(205,214,255,.55) 42%, rgba(205,214,255,0) 72%);
+    filter:blur(2px);transition:none}
+  .sunrise-bloom{position:absolute;inset:-20% -10% -10%;opacity:var(--bloom);pointer-events:none;mix-blend-mode:screen;
+    background:
+      radial-gradient(circle at 55% 64%, rgba(255,224,162,.42) 0%, rgba(255,190,104,.18) 24%, transparent 48%),
+      linear-gradient(180deg, transparent 42%, rgba(255,206,137,.2) 76%, rgba(255,241,200,.28) 100%);
+    filter:blur(1px);transition:none}
+  .ridge{position:absolute;left:-5%;width:110%;bottom:0;will-change:transform}
+  .ridge svg{display:block;width:100%;height:auto}
+  .ridge.r1{opacity:.55} .ridge.r2{opacity:.78} .ridge.r3{opacity:1}
+  .scene-grain{position:absolute;inset:0;opacity:.05;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+
+  /* ===== HUD ===== */
+  #prog{position:fixed;top:0;left:0;height:3px;width:100%;transform:scaleX(0);transform-origin:left;background:linear-gradient(90deg,var(--e1),var(--e2),var(--e3));z-index:90;transition:transform .1s linear}
+  .brandmark{position:fixed;top:18px;left:24px;z-index:80;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.05em;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:9px;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+  .brandmark .dot{width:8px;height:8px;border-radius:50%;background:var(--cur);box-shadow:0 0 12px var(--cur);transition:.6s}
+  .home-link{position:fixed;top:16px;right:24px;z-index:80;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);text-decoration:none;border:1px solid var(--line-strong);padding:8px 14px;border-radius:30px;background:rgba(8,7,10,.35);backdrop-filter:blur(6px);transition:.25s}
+  .home-link:hover{color:var(--cur);border-color:var(--cur)}
+
+  /* elevation gauge */
+  .gauge{position:fixed;right:26px;top:50%;transform:translateY(-50%);z-index:80;height:48vh;display:flex;flex-direction:column;align-items:center;justify-content:space-between;opacity:0;transition:opacity .5s}
+  .gauge.show{opacity:1}
+  .gauge .cap{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;color:var(--ink-faint);text-transform:uppercase}
+  .gauge .bar{position:relative;flex:1;width:3px;margin:12px 0;background:var(--line-strong);border-radius:3px;overflow:visible}
+  .gauge .fill{position:absolute;left:0;bottom:0;width:100%;background:linear-gradient(var(--e3),var(--e2),var(--e1));border-radius:3px;height:0}
+  .gauge .knob{position:absolute;left:50%;transform:translate(-50%,50%);bottom:0;width:13px;height:13px;border-radius:50%;background:var(--cur);box-shadow:0 0 0 4px color-mix(in srgb,var(--cur) 22%,transparent),0 0 16px var(--cur);transition:background .6s,box-shadow .6s}
+  .gauge .alt{position:absolute;left:-14px;transform:translate(-100%,50%);bottom:0;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--cur);white-space:nowrap;transition:color .6s}
+  @media(max-width:900px){.gauge{display:none}}
+
+  /* era chip */
+  #chip{position:fixed;top:58px;right:24px;z-index:80;text-align:right;font-family:"JetBrains Mono",monospace;opacity:0;transition:opacity .5s;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+  #chip.show{opacity:1}
+  #chip .e{display:block;color:var(--cur);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;transition:color .6s}
+  #chip .y{font-size:10px;letter-spacing:.1em;color:var(--ink-faint)}
+
+  /* ===== HERO ===== */
+  .hero{position:relative;z-index:5;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px}
+  .hero .kick{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:#c7cdf0;margin-bottom:26px;text-shadow:0 1px 10px rgba(0,0,0,.5)}
+  .hero h1{font-family:"Fraunces",serif;font-weight:300;font-size:clamp(3.4rem,13vw,9rem);line-height:.88;letter-spacing:-.02em;text-shadow:0 4px 40px rgba(0,0,0,.5)}
+  .hero h1 em{font-style:italic;color:#fff}
+  .hero .sub{margin-top:26px;font-family:"Fraunces",serif;font-style:italic;font-size:clamp(1.05rem,2.6vw,1.5rem);color:var(--ink);max-width:600px;text-shadow:0 2px 16px rgba(0,0,0,.6)}
+  .hero .span{margin-top:26px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;color:var(--ink);border:1px solid var(--line-strong);border-radius:30px;padding:9px 20px;background:rgba(8,7,10,.3);backdrop-filter:blur(6px)}
+  .hero .span b{color:#c7cdf0}
+  .scrollcue{position:absolute;bottom:34px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-dim);display:flex;flex-direction:column;align-items:center;gap:10px}
+  .scrollcue .b{width:1px;height:34px;background:linear-gradient(#c7cdf0,transparent);animation:drop 2s infinite}
+  @keyframes drop{0%{opacity:0;transform:scaleY(.2);transform-origin:top}50%{opacity:1}100%{opacity:0;transform:scaleY(1);transform-origin:bottom}}
+
+  /* ===== TRAIL ===== */
+  .trail-wrap{position:relative;z-index:5;max-width:var(--maxw);margin:0 auto;padding:30px 24px 40px}
+  .trail{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible}
+  .trail .track{fill:none;stroke:rgba(242,237,228,.18);stroke-width:2.4;stroke-dasharray:2 9;stroke-linecap:round}
+  .trail .glow{fill:none;stroke:url(#tg);stroke-width:3.4;stroke-linecap:round;filter:drop-shadow(0 0 7px rgba(170,178,230,.5))}
+
+  /* era band label */
+  .band{position:relative;z-index:6;text-align:center;padding:96px 14px 36px}
+  .band[data-i="0"]{--cur:var(--e1)} .band[data-i="1"]{--cur:var(--e2)} .band[data-i="2"]{--cur:var(--e3)}
+  .band .alt-tag{display:inline-flex;align-items:center;gap:10px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--cur);margin-bottom:16px}
+  .band .alt-tag::before,.band .alt-tag::after{content:"";width:42px;height:1px;background:color-mix(in srgb,var(--cur) 55%,transparent)}
+  .band h2{font-family:"Fraunces",serif;font-weight:330;font-size:clamp(2rem,6vw,3.5rem);line-height:1.02;letter-spacing:-.02em;text-shadow:0 2px 24px rgba(0,0,0,.5)}
+  .band h2 em{font-style:italic;color:var(--cur)}
+  .band p{margin:18px auto 0;max-width:540px;color:var(--ink-dim);font-size:1.05rem;text-shadow:0 1px 10px rgba(0,0,0,.5)}
+  .band .yr{margin-top:16px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;color:var(--ink-faint)}
+  .band .yr b{color:var(--cur)}
+
+  /* station */
+  .station{position:relative;z-index:6;min-height:150px;margin-bottom:60px}
+  .station[data-era="0"]{--cur:var(--e1)} .station[data-era="1"]{--cur:var(--e2)} .station[data-era="2"]{--cur:var(--e3)}
+  .marker{position:absolute;top:22px;width:24px;height:24px;border-radius:50%;background:rgba(8,7,10,.7);border:2px solid var(--ink-faint);transform:translateX(-50%) scale(.7);transition:all .5s cubic-bezier(.2,.8,.2,1);z-index:3;display:flex;align-items:center;justify-content:center}
+  .marker::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--ink-faint);transition:.5s}
+  .station.lit .marker{transform:translateX(-50%) scale(1);border-color:var(--cur);box-shadow:0 0 0 5px color-mix(in srgb,var(--cur) 16%,transparent),0 0 22px var(--cur)}
+  .station.lit .marker::after{background:var(--cur);box-shadow:0 0 10px var(--cur)}
+  .station.l .marker{left:13%} .station.r .marker{left:87%}
+  .card{position:relative;width:46%;background:rgba(11,10,15,.62);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:15px;padding:24px 24px 22px;opacity:0;transform:translateY(34px);transition:opacity .7s,transform .7s,border-color .4s,box-shadow .4s}
+  .station.in .card{opacity:1;transform:none}
+  .station.l .card{margin-left:17%}
+  .station.r .card{margin-left:37%}
+  .station.lit .card{border-color:color-mix(in srgb,var(--cur) 45%,var(--line));box-shadow:0 14px 50px rgba(0,0,0,.4)}
+  .card::after{content:"";position:absolute;top:30px;width:34px;height:1px;background:color-mix(in srgb,var(--cur) 45%,transparent)}
+  .station.l .card::after{left:-34px} .station.r .card::after{right:-34px}
+
+  .card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .idx{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;color:var(--ink-faint)}
+  .glyph{width:38px;height:38px;border:1px solid color-mix(in srgb,var(--cur) 38%,var(--line));border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--cur);flex:0 0 auto}
+  .glyph svg{width:20px;height:20px}
+  .card h3{font-family:"Fraunces",serif;font-weight:440;font-size:1.34rem;line-height:1.12;letter-spacing:-.01em;margin-bottom:11px}
+  .story{font-family:"Fraunces",serif;font-style:italic;color:var(--cur);font-size:1rem;line-height:1.4;margin-bottom:12px;opacity:.95}
+  .desc{font-size:.93rem;color:var(--ink-dim);margin-bottom:16px}
+  .cx{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .cx .l2{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+  .cx .dots{display:flex;gap:5px}
+  .cx .dots i{width:7px;height:7px;border-radius:50%;background:var(--line-strong);display:block}
+  .cx .dots i.on{background:var(--cur);box-shadow:0 0 8px var(--cur)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.03em;color:var(--ink-dim);background:rgba(242,237,228,.05);border:1px solid var(--line);padding:4px 8px;border-radius:3px}
+
+  @media(max-width:720px){
+    .marker{left:24px!important}
+    .card{width:auto!important;margin-left:56px!important;margin-right:0!important}
+    .card::after{left:-32px!important;right:auto!important;width:32px}
+  }
+
+  /* ===== SUMMIT / FINALE ===== */
+  .summit{position:relative;z-index:6;text-align:center;padding:70px 24px 100px}
+  .summit .flag{font-size:34px;margin-bottom:10px;filter:drop-shadow(0 0 16px var(--e3))}
+  .summit .kick{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--e3);margin-bottom:20px}
+  .summit h2{font-family:"Fraunces",serif;font-weight:330;font-size:clamp(2.1rem,6vw,4rem);line-height:1.03;letter-spacing:-.02em;max-width:760px;margin:0 auto;text-shadow:0 2px 30px rgba(0,0,0,.5)}
+  .summit h2 em{font-style:italic;background:linear-gradient(100deg,var(--e2),var(--e3));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .summit p{margin:24px auto 38px;max-width:520px;color:var(--ink-dim);font-size:1.06rem;text-shadow:0 1px 12px rgba(0,0,0,.5)}
+  .links{display:flex;flex-wrap:wrap;gap:13px;justify-content:center}
+  .btn{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;padding:13px 22px;border:1px solid var(--line-strong);color:var(--ink);transition:.28s;border-radius:3px;background:rgba(8,7,10,.3);backdrop-filter:blur(6px)}
+  .btn:hover{border-color:var(--e3);color:var(--e3);transform:translateY(-2px)}
+  .btn.solid{background:var(--e3);color:#100c1f;border-color:var(--e3)}
+  .btn.solid:hover{background:#b3a6f5}
+  .totop{display:inline-block;margin-top:54px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);text-decoration:none}
+  .totop:hover{color:var(--ink)}
+  .credit{margin-top:34px;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-faint)}
+
+  @media(prefers-reduced-motion:reduce){
+    .card{opacity:1!important;transform:none!important}
+    #stars{display:none}
+    .sunrise-bloom{display:none}
+  }
+</style>
+</head>
+<body id="top">
+
+<div id="prog"></div>
+
+<!-- ===== SCENE ===== -->
+<div class="scene">
+  <div class="sky"></div>
+  <canvas id="stars"></canvas>
+  <div class="celestial" id="cel"></div>
+  <div class="sunrise-bloom" id="bloom"></div>
+  <div class="ridge r1" id="r1"><svg viewBox="0 0 1440 260" preserveAspectRatio="none"><path fill="#1b2230" d="M0 260 L0 150 L150 90 L320 170 L480 70 L650 160 L820 60 L1000 150 L1180 80 L1340 160 L1440 110 L1440 260 Z"/></svg></div>
+  <div class="ridge r2" id="r2"><svg viewBox="0 0 1440 240" preserveAspectRatio="none"><path fill="#11161f" d="M0 240 L0 170 L200 100 L380 180 L560 90 L760 175 L960 95 L1160 180 L1340 110 L1440 165 L1440 240 Z"/></svg></div>
+  <div class="ridge r3" id="r3"><svg viewBox="0 0 1440 220" preserveAspectRatio="none"><path fill="#080a0f" d="M0 220 L0 195 L240 130 L470 200 L700 120 L940 200 L1180 130 L1440 195 L1440 220 Z"/></svg></div>
+  <div class="scene-grain"></div>
+</div>
+
+<a class="brandmark" href="#top"><span class="dot"></span>ANTIK AICH ROY</a>
+<a class="home-link" href="index.html">Portfolio →</a>
+<div id="chip"><span class="e">Base Camp</span><span class="y">2024</span></div>
+
+<div class="gauge" id="gauge">
+  <span class="cap">Summit</span>
+  <div class="bar"><div class="fill" id="gfill"><div class="knob"></div><div class="alt" id="galt">0%</div></div></div>
+  <span class="cap">Base</span>
+</div>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="kick">An Interactive Ascent</div>
+  <h1>The <em>Ascent</em></h1>
+  <p class="sub">From base camp to the summit. Every project was a step higher, and this is the climb in the order it happened.</p>
+  <div class="span">2024 &nbsp;<b>→</b>&nbsp; PRESENT</div>
+  <div class="scrollcue"><span class="b"></span>Begin the climb</div>
+</section>
+
+<!-- ===== TRAIL ===== -->
+<div class="trail-wrap" id="wrap">
+  <svg class="trail" id="trail" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="tg" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="#9d8df0"/><stop offset="50%" stop-color="#4fb5a8"/><stop offset="100%" stop-color="#e3a857"/>
+      </linearGradient>
+    </defs>
+    <path class="track" id="track" d=""/>
+    <path class="glow" id="glowp" d=""/>
+    <g id="climber"><circle r="6" fill="#fff"/><circle r="11" fill="none" stroke="#fff" stroke-width="1.4" opacity=".7"/></g>
+  </svg>
+
+  <!-- ACT I -->
+  <div class="band" data-i="0" id="era0">
+    <div class="alt-tag">Base Camp · Elevation 0</div>
+    <h2>The <em>Foundations</em></h2>
+    <p>It began with curiosity and a handful of datasets. Classic models, clean problems, and the habit of finishing what I started.</p>
+    <div class="yr">Independent study&nbsp; ·&nbsp; <b>2024</b></div>
+  </div>
+
+  <div class="station l era0" data-era="0" data-cx="1"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">01 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></svg></span></div>
+      <h3>Email Spam Classification</h3><p class="story">The very first model. Spam or not spam, and the small thrill of a machine getting it right.</p>
+      <p class="desc">Multinomial Naive Bayes over CountVectorizer features at 97% accuracy, shipped as an interactive Streamlit app.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Naive Bayes</span><span class="chip">CountVectorizer</span><span class="chip">Streamlit</span></div></article></div>
+
+  <div class="station r era0" data-era="0" data-cx="1"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">02 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 20L20 4"/><circle cx="7" cy="8" r="1.4" fill="currentColor" stroke="none"/><circle cx="10" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="17" r="1.4"/><circle cx="18" cy="14" r="1.4"/></svg></span></div>
+      <h3>Breast Cancer Classification</h3><p class="story">A first taste of decisions that matter, and of choosing the features that count.</p>
+      <p class="desc">A Support Vector Classifier reaching 97%+ accuracy after narrowing 30+ features to the 6 most impactful.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">SVM</span><span class="chip">Feature Selection</span><span class="chip">scikit-learn</span></div></article></div>
+
+  <div class="station l era0" data-era="0" data-cx="1"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">03 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 20h16"/><rect x="5" y="12" width="3" height="6"/><rect x="11" y="8" width="3" height="10"/><rect x="17" y="14" width="3" height="4"/></svg></span></div>
+      <h3>Global Terror Activities Analysis</h3><p class="story">Before the models came the questions. I learned to let the data speak first.</p>
+      <p class="desc">Exploratory analysis surfacing the most affected cities, dominant attack types, and the most active groups.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">EDA</span><span class="chip">Data Visualization</span><span class="chip">Python</span></div></article></div>
+
+  <div class="station r era0" data-era="0" data-cx="2"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">04 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/></svg></span></div>
+      <h3>Advanced Sales Analytics Dashboard</h3><p class="story">Numbers are only useful when someone can act on them.</p>
+      <p class="desc">A dynamic Power BI dashboard over four years of sales data; advanced ETL cut data errors by 20%.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Power BI</span><span class="chip">SQL</span><span class="chip">MySQL</span><span class="chip">EDA</span></div></article></div>
+
+  <div class="station l era0" data-era="0" data-cx="2"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">05 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/></svg></span></div>
+      <h3>Ukraine War Aid Report</h3><p class="story">Telling a real story with data, where the gaps mattered as much as the totals.</p>
+      <p class="desc">A Power BI dashboard contrasting aid committed against aid disbursed, on a Python and Pandas ETL base.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Power BI</span><span class="chip">Python</span><span class="chip">Pandas</span><span class="chip">ETL</span></div></article></div>
+
+  <div class="station r era0" data-era="0" data-cx="3"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">06 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 19l5-5 4 3 7-8"/><path d="M16 6h4v4"/></svg></span></div>
+      <h3>Hybrid Stock Price Prediction</h3><p class="story">Two signals are better than one. I started combining what models see with what people feel.</p>
+      <p class="desc">Fuses Sensex numerical analysis (RMSE 0.031) with TextBlob headline sentiment in a Random Forest regressor.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Random Forest</span><span class="chip">TextBlob</span><span class="chip">Sentiment</span></div></article></div>
+
+  <div class="station l era0" data-era="0" data-cx="3"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">07 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="2"/></svg></span></div>
+      <h3>Brain Tumor Prediction</h3><p class="story">The first time a model of mine left my laptop and went live for someone else to use.</p>
+      <p class="desc">A TensorFlow CNN across four tumor classes at 96% accuracy, deployed on GCP with Docker and FastAPI.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">TensorFlow</span><span class="chip">GCP</span><span class="chip">Docker</span><span class="chip">FastAPI</span></div></article></div>
+
+  <!-- ACT II -->
+  <div class="band" data-i="1" id="era1">
+    <div class="alt-tag">The Ridgeline · Climbing</div>
+    <h2>Building <em>Systems</em></h2>
+    <p>Models became products. The question shifted from "can it predict?" to "can it serve, scale, and explain itself?"</p>
+    <div class="yr">Applied ML &amp; engineering&nbsp; ·&nbsp; <b>2024 → 2025</b></div>
+  </div>
+
+  <div class="station r era1" data-era="1" data-cx="3"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">08 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10l2 2 4-4"/></svg></span></div>
+      <h3>Automated Résumé Analysis &amp; Scoring</h3><p class="story">Then large language models arrived, and software began to reason instead of only classify.</p>
+      <p class="desc">A serverless GCP pipeline: a bucket upload triggers a Cloud Function that extracts text and scores it against a job description with an LLM. JWT secured, ngrok tunneled.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">GCP Functions</span><span class="chip">LLM Scoring</span><span class="chip">JWT</span><span class="chip">ngrok</span></div></article></div>
+
+  <div class="station l era1" data-era="1" data-cx="3"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">09 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3v18M5 8h14M5 8l-2 5h4zM19 8l-2 5h4z"/><path d="M8 21h8"/></svg></span></div>
+      <h3>RAG Evaluation Framework</h3><p class="story">If these models were going to be trusted, I needed to learn how to judge them honestly.</p>
+      <p class="desc">Compared statistical against semantic chunking, and built an LLM-as-judge ensemble weighted to agree with human evaluations.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">LLM-as-Judge</span><span class="chip">Semantic Chunking</span><span class="chip">Calibration</span></div></article></div>
+
+  <div class="station r era1" data-era="1" data-cx="4"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">10 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="3" width="12" height="16" rx="1"/><path d="M7 7h6M7 10h6M7 13h3"/><circle cx="16.5" cy="16.5" r="3"/><path d="M18.6 18.6L21 21"/></svg></span></div>
+      <h3>End-to-End RAG Pipeline</h3><p class="story">Evaluation taught me what good looked like. So I built the whole thing, properly.</p>
+      <p class="desc">Ingestion to answer: hybrid search over an HNSW index, bi-encoder retrieval, cross-encoder reranking, and query expansion.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Hybrid Search</span><span class="chip">HNSW</span><span class="chip">Reranking</span><span class="chip">Query Expansion</span></div></article></div>
+
+  <div class="station l era1" data-era="1" data-cx="3"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">11 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v6c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-6"/><path d="M5 11.5v6c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-6"/></svg></span></div>
+      <h3>NL-to-SQL Agent</h3><p class="story">I wanted databases to understand people, not the other way around.</p>
+      <p class="desc">A text-to-SQL agent with dynamic semantic key mapping that resolves intent to schema even when the wording never matches.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">LLM Agent</span><span class="chip">Semantic Mapping</span><span class="chip">Text-to-SQL</span></div></article></div>
+
+  <div class="station r era1" data-era="1" data-cx="4"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">12 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 16h5l2-9 3 13 2-7h6"/></svg></span></div>
+      <h3>Log Anomaly Detection + LLM RCA</h3><p class="story">Finding the needle was step one. Explaining why it was there was the real win.</p>
+      <p class="desc">Isolation Forest, then an autoencoder modeling normal behavior; an LLM turns each anomaly into a root-cause explanation.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Autoencoder</span><span class="chip">Isolation Forest</span><span class="chip">LLM RCA</span></div></article></div>
+
+  <div class="station l era1" data-era="1" data-cx="4"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">13 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/></svg></span></div>
+      <h3>Domain-Adapted Small Language Models</h3><p class="story">Bigger is not always better. I learned to make small models punch above their weight.</p>
+      <p class="desc">Data collection and augmentation, domain adaptation, and LoRA fine-tuning, served via Ollama and llama.cpp with quantization.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">LoRA</span><span class="chip">Domain Adaptation</span><span class="chip">Quantization</span><span class="chip">Ollama</span></div></article></div>
+
+  <div class="station r era1" data-era="1" data-cx="3"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">14 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span></div>
+      <h3>AI Governance &amp; Risk Management</h3><p class="story">With capability came responsibility. I started designing for accountability, not just accuracy.</p>
+      <p class="desc">A framework structuring risk assessment, controls, and oversight so that models ship with guardrails built in.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Responsible AI</span><span class="chip">Risk Assessment</span><span class="chip">Governance</span></div></article></div>
+
+  <!-- ACT III -->
+  <div class="band" data-i="2" id="era2">
+    <div class="alt-tag">Above the Clouds · Summit Push</div>
+    <h2>The Research <em>Frontier</em></h2>
+    <p>The remaining problems had no textbook answer. So I started writing my own.</p>
+    <div class="yr">Research &amp; publications&nbsp; ·&nbsp; <b>2025 → Present</b></div>
+  </div>
+
+  <div class="station l era2" data-era="2" data-cx="4"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">15 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 6V4h3M19 6V4h-3M5 18v2h3M19 18v2h-3"/><path d="M8.5 16l2-8 2 8M9 13.5h3"/><path d="M14 16v-4.5a1.6 1.6 0 0 1 3.2 0V16M14 13.5h3.2"/></svg></span></div>
+      <h3>Bengali Scene Text Recognition</h3><p class="story">I turned toward problems the literature had barely touched, starting with my own language.</p>
+      <p class="desc">Fine-tuned Florence with a purpose-built Bengali tokenizer to read a conjunct-rich, under-served script.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Florence</span><span class="chip">Custom Tokenizer</span><span class="chip">Vision-Language</span></div></article></div>
+
+  <div class="station r era2" data-era="2" data-cx="5"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">16 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9.5 9a2.5 2.5 0 1 1 3 2.4c-.8.3-1 .8-1 1.6M11.5 16.5h.01"/></svg></span></div>
+      <h3>Multi-Page, Multi-Doc VQA</h3><p class="story">How do you give a small model a big model's understanding? You teach it.</p>
+      <p class="desc">A graph-based teacher distills structural knowledge into a compact student, cutting memory while raising accuracy.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Graph NN</span><span class="chip">Knowledge Distillation</span><span class="chip">Document VQA</span></div></article></div>
+
+  <div class="station l era2" data-era="2" data-cx="5"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">17 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 18l5-9 4 4 5-9" opacity=".5"/><circle cx="5" cy="18" r="1.7" fill="currentColor" stroke="none"/><circle cx="10" cy="9" r="1.7" fill="currentColor" stroke="none"/><circle cx="14" cy="13" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="4" r="1.7" fill="currentColor" stroke="none"/></svg></span></div>
+      <h3>Multilingual Representation Study</h3><p class="story">A quiet research direction around how language patterns can be organized and transferred.</p>
+      <p class="desc">An unpublished exploration of cross-lingual structure, compact adaptation, and model behavior under constrained settings.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Language AI</span><span class="chip">Representation</span><span class="chip">Adaptation</span><span class="chip">Research</span></div></article></div>
+
+  <div class="station r era2" data-era="2" data-cx="5"><div class="marker"></div>
+    <article class="card"><div class="card-head"><span class="idx">18 / 18</span><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="5.5" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="19" cy="18.5" r="2"/><path d="M7 11.5L17 5.8M7 12h10M7 12.5L17 18.2"/></svg></span></div>
+      <h3>Uncertainty-Aware Vision Research</h3><p class="story">The summit: a broader investigation into confidence, reliability, and decision boundaries.</p>
+      <p class="desc">An unpublished model-design study focused on robust prediction behavior and careful handling of ambiguous visual signals.</p>
+      <div class="cx"><span class="l2">complexity</span><span class="dots"></span></div>
+      <div class="chips"><span class="chip">Vision AI</span><span class="chip">Reliability</span><span class="chip">Uncertainty</span></div></article></div>
+
+</div>
+
+<!-- ===== SUMMIT ===== -->
+<section class="summit">
+  <h2>Every camp climbed, and the <em>climb keeps going.</em></h2>
+  <p>Every project raised the next question. If you are working on something hard at the edge of vision, generative, or agentic AI, I would love to talk.</p>
+  <div class="links">
+    <a class="btn solid" href="https://github.com/Antikaichroy" target="_blank" rel="noopener">GitHub ↗</a>
+    <a class="btn" href="https://www.linkedin.com/in/antik-aich-roy-data-scientist" target="_blank" rel="noopener">LinkedIn ↗</a>
+    <!-- Replace the address below with your email -->
+    <a class="btn" href="mailto:your.email@example.com">Email ↗</a>
+  </div>
+  <a class="totop" href="#top">↓ Descend to base camp</a>
+  <div class="credit">© <span id="yr"></span> Antik Aich Roy · A single page, hosted on GitHub Pages</div>
+</section>
+
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+const ERAS=[
+  {name:'The Foundations',  year:'2024',          color:'#9d8df0'},
+  {name:'Building Systems', year:'2024 → 2025',   color:'#4fb5a8'},
+  {name:'Research Frontier',year:'2025 → Present', color:'#e3a857'}
+];
+const stations=[...document.querySelectorAll('.station')];
+const totalStations=stations.length;
+const pad=n=>String(n).padStart(2,'0');
+stations.forEach((s,i)=>{
+  const idx=s.querySelector('.idx');
+  if(idx) idx.textContent=pad(i+1)+' / '+pad(totalStations);
+});
+
+/* complexity dots */
+stations.forEach(s=>{
+  const cx=+s.dataset.cx||1, w=s.querySelector('.dots');
+  for(let i=0;i<5;i++){const d=document.createElement('i');if(i<cx)d.className='on';w.appendChild(d);}
+});
+
+/* reveal */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.16});
+stations.forEach(el=>io.observe(el));
+
+/* ---- trail geometry ---- */
+const wrap=document.getElementById('wrap'), svg=document.getElementById('trail');
+const track=document.getElementById('track'), glowp=document.getElementById('glowp'), climber=document.getElementById('climber');
+const markers=stations.map(s=>s.querySelector('.marker'));
+let pts=[], pathLen=0;
+
+function smooth(p){
+  if(p.length<2) return '';
+  let d='M '+p[0].x+' '+p[0].y;
+  for(let i=0;i<p.length-1;i++){
+    const p0=p[i-1]||p[i],p1=p[i],p2=p[i+1],p3=p[i+2]||p2;
+    const c1x=p1.x+(p2.x-p0.x)/6,c1y=p1.y+(p2.y-p0.y)/6;
+    const c2x=p2.x-(p3.x-p1.x)/6,c2y=p2.y-(p3.y-p1.y)/6;
+    d+=' C '+c1x+' '+c1y+', '+c2x+' '+c2y+', '+p2.x+' '+p2.y;
+  }
+  return d;
+}
+function buildTrail(){
+  const wr=wrap.getBoundingClientRect();
+  const W=wrap.clientWidth, H=wrap.clientHeight;
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  pts=markers.map(m=>{const r=m.getBoundingClientRect();return {x:r.left-wr.left+r.width/2, y:r.top-wr.top+r.height/2};});
+  // start the trail a little below the first marker (base of mountain)
+  pts.unshift({x:pts[0].x, y:H});
+  const d=smooth(pts);
+  track.setAttribute('d',d); glowp.setAttribute('d',d);
+  pathLen=track.getTotalLength();
+  glowp.style.strokeDasharray=pathLen; glowp.style.strokeDashoffset=pathLen;
+  update();
+}
+
+/* ---- scroll engine ---- */
+const prog=document.getElementById('prog'), root=document.documentElement;
+const chip=document.getElementById('chip'), gauge=document.getElementById('gauge');
+const gfill=document.getElementById('gfill'), galt=document.getElementById('galt');
+const eraSecs=[document.getElementById('era0'),document.getElementById('era1'),document.getElementById('era2')];
+const cel=document.getElementById('cel');
+const r1=document.getElementById('r1'),r2=document.getElementById('r2'),r3=document.getElementById('r3');
+let curEra=-1, ticking=false, starP=0;
+
+const SKY=[['#05060c','#0a0c1a','#1a1f3a'],['#0a1018','#15293c','#356b6e'],['#46577d','#9a6a52','#e3aa6a']];
+const hx=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const L=(a,b,t)=>a+(b-a)*t;
+function stop(i,p){let a,b,t;if(p<.5){a=SKY[0][i];b=SKY[1][i];t=p/.5;}else{a=SKY[1][i];b=SKY[2][i];t=(p-.5)/.5;}a=hx(a);b=hx(b);return 'rgb('+a.map((v,k)=>Math.round(L(v,b[k],t))).join(',')+')';}
+
+function setEra(i){if(i===curEra)return;curEra=i;root.style.setProperty('--cur',ERAS[i].color);
+  chip.querySelector('.e').textContent=ERAS[i].name;chip.querySelector('.y').textContent=ERAS[i].year;}
+
+function update(){
+  ticking=false;
+  const vh=innerHeight, docH=root.scrollHeight-vh;
+  const p=Math.max(0,Math.min(1,scrollY/docH));
+  prog.style.transform='scaleX('+p+')';
+  // sky morph
+  root.style.setProperty('--s-top',stop(0,p));
+  root.style.setProperty('--s-mid',stop(1,p));
+  root.style.setProperty('--s-hor',stop(2,p));
+  // celestial: cool moon (night) to warm sun (morning), settling toward the horizon and growing
+  const cx2=L(30,54,p), cy=L(16,62,p), sz=L(86,160,p);
+  const cc=hx('#cdd6ff').map((v,k)=>Math.round(L(v,hx('#ffdca0')[k],p)));
+  cel.style.left=cx2+'%'; cel.style.top=cy+'%'; cel.style.width=sz+'px'; cel.style.height=sz+'px';
+  cel.style.background='radial-gradient(circle at 50% 50%, rgb('+cc[0]+','+cc[1]+','+cc[2]+') 0%, rgba('+cc[0]+','+cc[1]+','+cc[2]+',.55) 42%, rgba('+cc[0]+','+cc[1]+','+cc[2]+',0) 72%)';
+  // stars: bright in the night at the start, fading as morning arrives
+  starP=1-p;
+  const bloomP=Math.max(0,Math.min(1,(p-.88)/.12));
+  root.style.setProperty('--bloom',bloomP);
+  // ridge parallax (terrain sinks as we climb)
+  r1.style.transform='translateY('+(scrollY*0.04)+'px)';
+  r2.style.transform='translateY('+(scrollY*0.08)+'px)';
+  r3.style.transform='translateY('+(scrollY*0.14)+'px)';
+  // trail fill
+  const wr=wrap.getBoundingClientRect();
+  const filledY=Math.max(0,Math.min(wr.height, vh*0.6 - wr.top));
+  let tp=wr.height>0?filledY/wr.height:0; tp=Math.max(0,Math.min(1,tp));
+  glowp.style.strokeDashoffset=pathLen*(1-tp);
+  if(pathLen){const pt=track.getPointAtLength(pathLen*tp);climber.setAttribute('transform','translate('+pt.x+' '+pt.y+')');climber.querySelector('circle').setAttribute('fill',ERAS[curEra<0?0:curEra].color);}
+  // light stations
+  markers.forEach((m,i)=>{const st=m.closest('.station');st.classList.toggle('lit', pts[i+1] && pts[i+1].y<=filledY);});
+  // gauge + chip after hero
+  const past=scrollY>vh*0.7;
+  gauge.classList.toggle('show',past); chip.classList.toggle('show',past);
+  gfill.style.height=(p*100)+'%'; galt.textContent=Math.round(p*100)+'%';
+  // active era
+  let a=0; eraSecs.forEach((s,i)=>{if(s.getBoundingClientRect().top<=vh*0.55)a=i;}); setEra(a);
+}
+addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(update);}},{passive:true});
+addEventListener('resize',()=>{buildTrail();});
+
+/* ---- stars canvas ---- */
+(function(){
+  const cv=document.getElementById('stars'),ctx=cv.getContext('2d');const DPR=Math.min(devicePixelRatio||1,2);let w,h,st,meteors=[];
+  function size(){w=cv.clientWidth=innerWidth;h=cv.clientHeight=innerHeight;cv.width=w*DPR;cv.height=h*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+    st=Array.from({length:140},()=>({x:Math.random()*w,y:Math.random()*h*0.8,r:Math.random()*1.3+.2,t:Math.random()*Math.PI*2,s:Math.random()*.04+.01}));}
+  function addMeteor(){
+    if(starP<.28||meteors.length>3||Math.random()>0.018*starP) return;
+    meteors.push({x:Math.random()*w*.85+w*.1,y:Math.random()*h*.38+20,vx:-8-Math.random()*5,vy:3.5+Math.random()*2.5,life:0,max:38+Math.random()*24,len:90+Math.random()*80});
+  }
+  function drawMeteor(m){
+    m.x+=m.vx;m.y+=m.vy;m.life++;
+    const a=starP*(1-m.life/m.max)*.85;
+    if(a<=0) return;
+    const tx=m.x-m.vx*(m.len/12),ty=m.y-m.vy*(m.len/12);
+    const g=ctx.createLinearGradient(m.x,m.y,tx,ty);
+    g.addColorStop(0,'rgba(255,255,255,'+a+')');
+    g.addColorStop(.25,'rgba(199,205,240,'+(a*.65)+')');
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.strokeStyle=g;ctx.lineWidth=1.4;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(m.x,m.y);ctx.lineTo(tx,ty);ctx.stroke();
+    ctx.beginPath();ctx.arc(m.x,m.y,1.5,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+a+')';ctx.fill();
+  }
+  function draw(){ctx.clearRect(0,0,w,h);for(const s of st){s.t+=s.s;const tw=(Math.sin(s.t)*.5+.5);const a=starP*tw*0.9;if(a>0.01){ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+a+')';ctx.fill();}}addMeteor();meteors.forEach(drawMeteor);meteors=meteors.filter(m=>m.life<m.max&&m.x>-180&&m.y<h+80);requestAnimationFrame(draw);}
+  size();draw();let t;addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(size,200);});
+})();
+
+/* build after layout + fonts settle */
+addEventListener('load',()=>{buildTrail();setTimeout(buildTrail,400);});
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>setTimeout(buildTrail,50));}
+buildTrail();
+</script>
+</body>
+</html>
