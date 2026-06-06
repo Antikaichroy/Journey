@@ -178,10 +178,10 @@
   <span class="cap">Base</span>
 </div>
 
-<audio id="bgMusic" loop>
+<audio id="bgMusic" loop autoplay>
   <source src="./audio/sigmamusicart-background-music-inspiring-525840.mp3" type="audio/mpeg">
 </audio>
-<button class="sound-toggle" id="soundToggle" title="Toggle background music">🎵 Music</button>
+<button class="sound-toggle" id="soundToggle" title="Click to mute music">🔊</button>
 
 <!-- ===== HERO ===== -->
 <section class="hero">
@@ -513,8 +513,11 @@ addEventListener('resize',()=>{buildTrail();});
 
 /* ---- audio toggle ---- */
 const bgMusic=document.getElementById('bgMusic'),soundToggle=document.getElementById('soundToggle');
-soundToggle.addEventListener('click',()=>{if(bgMusic.paused){bgMusic.play();soundToggle.style.color='var(--cur)';soundToggle.style.borderColor='var(--cur)';}else{bgMusic.pause();soundToggle.style.color='var(--ink-dim)';soundToggle.style.borderColor='var(--line-strong)';}});
-window.addEventListener('beforeunload',()=>{bgMusic.pause();});
+function updateSoundButton(){if(bgMusic.paused){soundToggle.textContent='🔇';soundToggle.style.color='var(--ink-dim)';soundToggle.style.borderColor='var(--line-strong)';}else{soundToggle.textContent='🔊';soundToggle.style.color='var(--cur)';soundToggle.style.borderColor='var(--cur)';}}
+soundToggle.addEventListener('click',()=>{if(bgMusic.paused){bgMusic.play();}else{bgMusic.pause();}updateSoundButton();});
+addEventListener('load',()=>{bgMusic.play().catch(()=>{});updateSoundButton();});
+bgMusic.addEventListener('play',updateSoundButton);
+bgMusic.addEventListener('pause',updateSoundButton);
 
 /* build after layout + fonts settle */
 addEventListener('load',()=>{buildTrail();setTimeout(buildTrail,400);});
