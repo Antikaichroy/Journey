@@ -178,7 +178,7 @@
   <span class="cap">Base</span>
 </div>
 
-<audio id="bgMusic" loop autoplay>
+<audio id="bgMusic" loop autoplay muted>
   <source src="./audio/sigmamusicart-background-music-inspiring-525840.mp3" type="audio/mpeg">
 </audio>
 <button class="sound-toggle" id="soundToggle" title="Click to mute music">🔊</button>
@@ -513,11 +513,10 @@ addEventListener('resize',()=>{buildTrail();});
 
 /* ---- audio toggle ---- */
 const bgMusic=document.getElementById('bgMusic'),soundToggle=document.getElementById('soundToggle');
-function updateSoundButton(){if(bgMusic.paused){soundToggle.textContent='🔇';soundToggle.style.color='var(--ink-dim)';soundToggle.style.borderColor='var(--line-strong)';}else{soundToggle.textContent='🔊';soundToggle.style.color='var(--cur)';soundToggle.style.borderColor='var(--cur)';}}
-soundToggle.addEventListener('click',()=>{if(bgMusic.paused){bgMusic.play();}else{bgMusic.pause();}updateSoundButton();});
-addEventListener('load',()=>{bgMusic.play().catch(()=>{});updateSoundButton();});
-bgMusic.addEventListener('play',updateSoundButton);
-bgMusic.addEventListener('pause',updateSoundButton);
+function updateSoundButton(){if(bgMusic.muted){soundToggle.textContent='🔇';soundToggle.style.color='var(--ink-dim)';soundToggle.style.borderColor='var(--line-strong)';}else{soundToggle.textContent='🔊';soundToggle.style.color='var(--cur)';soundToggle.style.borderColor='var(--cur)';}}
+soundToggle.addEventListener('click',()=>{bgMusic.muted=!bgMusic.muted;updateSoundButton();});
+addEventListener('load',()=>{bgMusic.play().catch(()=>{});setTimeout(()=>{bgMusic.muted=false;updateSoundButton();},100);});
+document.addEventListener('click',()=>{if(bgMusic.paused){bgMusic.play().catch(()=>{});}},{once:true});
 
 /* build after layout + fonts settle */
 addEventListener('load',()=>{buildTrail();setTimeout(buildTrail,400);});
